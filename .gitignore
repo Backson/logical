@@ -1,0 +1,36 @@
+# linux compiled binary files
+*.o
+*.a
+*.so
+*.so.*
+
+# windows compiled binary files
+*.exe
+*.dll
+*.lib
+*.obj
+
+# linux build system
+/bin/
+/obj/
+
+# windows build system
+/deps/
+/package*/
+/msvc/bin/
+/msvc/obj/
+/msvc/**/*.sdf
+/msvc/**/*.opensdf
+/msvc/**/*.suo
+
+*.sdf
+*.opensdf
+*.suo
+
+# windows testing
+Guitar*
+
+# eclipse
+.cproject
+.project
+.settings
