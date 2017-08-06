@@ -1,7 +1,5 @@
 #include "logical.hpp"
 
-#include "game.hpp"
-
 #include <cstdio>
 #include <cmath>
 

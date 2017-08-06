@@ -153,7 +153,6 @@
     <ClCompile Include="time.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="game.hpp" />
     <ClInclude Include="logical.hpp" />
     <ClInclude Include="random.hpp" />
     <ClInclude Include="std_types.hpp" />

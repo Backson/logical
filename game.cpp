@@ -1,5 +1,3 @@
-#include "game.hpp"
-
 #include "logical.hpp"
 
 void clearGame(GameData *gd) {

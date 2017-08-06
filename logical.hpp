@@ -1,10 +1,15 @@
 #ifndef LOGICAL_HPP_
 #define LOGICAL_HPP_
 
+// essential headers
+
 #include <SDL2/SDL.h>
 
+#include "std_types.hpp"
 #include "time.hpp"
 #include "random.hpp"
+
+// constants
 
 #define BALL_TYPE_NONE    -1
 #define BALL_TYPE_RED     0
@@ -39,6 +44,7 @@
 #define NSPAWNS 4
 
 // forward-declare types
+
 struct GameData;
 struct Ball;
 struct Line;
@@ -46,24 +52,7 @@ struct Connector;
 struct InsertPoint;
 struct SpawnPoint;
 
-void buildMap1(GameData *);
-void buildMap2(GameData *);
-void buildMap3(GameData *);
-void buildMap4(GameData *);
-
-void turnRotor(GameData *, int, int);
-void releaseBallFromRotor(GameData *, int, int);
-
-void resetGame(GameData *);
-void handleAllEvents(GameData *);
-void handleEvent(GameData *, const SDL_Event *);
-void progressLogic(GameData *, Time);
-void updateBallPosition(GameData *, int);
-void renderEverything(GameData *, SDL_Renderer *);
-
-extern bool should_quit;
-extern const int ROTOR_POSITIONS[];
-extern const Uint8 BALL_COLORS[][4];
+// types
 
 struct Connector {
 	int type;
@@ -141,5 +130,46 @@ struct GameData {
 
 	SDL_Renderer *renderer;
 };
+
+// globals
+
+extern bool should_quit;
+extern const int ROTOR_POSITIONS[];
+extern const Uint8 BALL_COLORS[][4];
+
+// functions
+
+void buildMap1(GameData *);
+void buildMap2(GameData *);
+void buildMap3(GameData *);
+void buildMap4(GameData *);
+
+void turnRotor(GameData *, int, int);
+void releaseBallFromRotor(GameData *, int, int);
+
+void resetGame(GameData *);
+void handleAllEvents(GameData *);
+void handleEvent(GameData *, const SDL_Event *);
+void progressLogic(GameData *, Time);
+void updateBallPosition(GameData *, int);
+void renderEverything(GameData *, SDL_Renderer *);
+
+void clearGame(GameData *);
+
+int addBallType(GameData *, int);
+int addBall(GameData *, int);
+void removeBall(GameData *, int);
+int addLine(GameData *);
+int addRotor(GameData *);
+int addInserter(GameData *);
+int addSpawn(GameData *);
+
+int placeBallFree(GameData *gd, int ball_type, float x, float y, float vx, float vy);
+int placeBallInRotor(GameData *, int rotor_index, int rotor_position, int ball_type);
+int placeBallInSpawn(GameData *gd, int ball_type, int spawn_index);
+int placeRandomBallInSpawn(GameData *gd, int spawn_index);
+	
+void changeBallConnector(GameData *, int ball_index, const Connector *connector);
+void copyConnector(const Connector *src, Connector *dst);
 
 #endif // LOGICAL_HPP_

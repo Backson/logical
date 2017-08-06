@@ -1,7 +1,5 @@
 #include "logical.hpp"
 
-#include "game.hpp"
-
 int placeRotor(GameData *gd, float x, float y) {
 	SDL_assert(gd->rotor_count <= NROTORS - 1);
 	int rotor_index = addRotor(gd);
