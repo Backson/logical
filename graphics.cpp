@@ -97,63 +97,92 @@ void stopGraphics(GameData *gd) {
 	}
 }
 
-void renderEverything(GameData *gd) {
-	SDL_Renderer *renderer = gd->renderer;
+void clearScreen(GameData *gd) {
+    SDL_SetRenderDrawColor(gd->renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+    SDL_RenderClear(gd->renderer);
+}
 
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
-    SDL_RenderClear(renderer);
-	
+void renderLine(GameData *gd, int i) {
+	SDL_SetRenderDrawColor(gd->renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
+	SDL_RenderDrawLine(gd->renderer, (int)gd->lines[i].x1, (int)gd->lines[i].y1, (int)gd->lines[i].x2, (int)gd->lines[i].y2);
+}
+
+void renderLines(GameData *gd) {
 	for (int i = 0; i < gd->line_count; ++i) {
-		SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
-		SDL_RenderDrawLine(renderer, (int)gd->lines[i].x1, (int)gd->lines[i].y1, (int)gd->lines[i].x2, (int)gd->lines[i].y2);
+		renderLine(gd, i);
 	}
+}
 
+void renderRotor(GameData *gd, int i) {
+	SDL_Rect rect;
+	rect.x = (int)gd->rotors[i].x - 30;
+	rect.y = (int)gd->rotors[i].y - 30;
+	rect.w = 60;
+	rect.h = 60;
+	if (gd->rotors[i].destroyed) {
+		SDL_SetRenderDrawColor(gd->renderer, 0x66, 0x66, 0x66, SDL_ALPHA_OPAQUE);
+	} else {
+		SDL_SetRenderDrawColor(gd->renderer, 0xCC, 0xCC, 0xCC, SDL_ALPHA_OPAQUE);
+	}
+	SDL_RenderFillRect(gd->renderer, &rect);
+	SDL_SetRenderDrawColor(gd->renderer, 0xFF, 0xFF, 0xFF, SDL_ALPHA_OPAQUE);
+	SDL_RenderDrawRect(gd->renderer, &rect);
+}
+
+void renderRotors(GameData *gd) {
 	for (int i = 0; i < gd->rotor_count; ++i) {
-		SDL_Rect rect;
-		rect.x = (int)gd->rotors[i].x - 30;
-		rect.y = (int)gd->rotors[i].y - 30;
-		rect.w = 60;
-		rect.h = 60;
-		if (gd->rotors[i].destroyed) {
-			SDL_SetRenderDrawColor(renderer, 0x66, 0x66, 0x66, SDL_ALPHA_OPAQUE);
-		} else {
-			SDL_SetRenderDrawColor(renderer, 0xCC, 0xCC, 0xCC, SDL_ALPHA_OPAQUE);
-		}
-		SDL_RenderFillRect(renderer, &rect);
-		SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, SDL_ALPHA_OPAQUE);
-		SDL_RenderDrawRect(renderer, &rect);
+		renderRotor(gd, i);
 	}
+}
 
+void renderBall(GameData *gd, int i) {
+	int type = gd->balls[i].type;
+	if (type == BALL_TYPE_NONE)
+		return;
+	float x = gd->balls[i].x;
+	float y = gd->balls[i].y;
+	Uint8 r = BALL_COLORS[type + 1][0];
+	Uint8 g = BALL_COLORS[type + 1][1];
+	Uint8 b = BALL_COLORS[type + 1][2];
+	Uint8 a = BALL_COLORS[type + 1][3];
+	SDL_SetRenderDrawColor(gd->renderer, r, g, b, a);
+	SDL_Rect rect = {(int)(x - 10), (int)(y - 10), 20, 20};
+	SDL_RenderFillRect(gd->renderer, &rect);
+}
+
+void renderBalls(GameData *gd) {
 	for (int i = 0; i < NBALLS; ++i) {
-		int type = gd->balls[i].type;
-		if (type == BALL_TYPE_NONE)
-			continue;
-		float x = gd->balls[i].x;
-		float y = gd->balls[i].y;
-		Uint8 r = BALL_COLORS[type + 1][0];
-		Uint8 g = BALL_COLORS[type + 1][1];
-		Uint8 b = BALL_COLORS[type + 1][2];
-		Uint8 a = BALL_COLORS[type + 1][3];
-		SDL_SetRenderDrawColor(renderer, r, g, b, a);
-		SDL_Rect rect = {(int)(x - 10), (int)(y - 10), 20, 20};
-		SDL_RenderFillRect(renderer, &rect);
+		renderBall(gd, i);
 	}
+}
 
+void renderRotorCenter(GameData *gd, int i) {
+	SDL_Rect rect;
+	rect.x = (int)gd->rotors[i].x - 10;
+	rect.y = (int)gd->rotors[i].y - 10;
+	rect.w = 20;
+	rect.h = 20;
+	if (gd->rotors[i].destroyed) {
+		SDL_SetRenderDrawColor(gd->renderer, 0x66, 0x66, 0x66, SDL_ALPHA_OPAQUE);
+	} else {
+		SDL_SetRenderDrawColor(gd->renderer, 0xCC, 0xCC, 0xCC, SDL_ALPHA_OPAQUE);
+	}
+	SDL_RenderFillRect(gd->renderer, &rect);
+	SDL_SetRenderDrawColor(gd->renderer, 0xFF, 0xFF, 0xFF, SDL_ALPHA_OPAQUE);
+	SDL_RenderDrawRect(gd->renderer, &rect);
+}
+
+void renderRotorCenters(GameData *gd) {
 	for (int i = 0; i < gd->rotor_count; ++i) {
-		SDL_Rect rect;
-		rect.x = (int)gd->rotors[i].x - 10;
-		rect.y = (int)gd->rotors[i].y - 10;
-		rect.w = 20;
-		rect.h = 20;
-		if (gd->rotors[i].destroyed) {
-			SDL_SetRenderDrawColor(renderer, 0x66, 0x66, 0x66, SDL_ALPHA_OPAQUE);
-		} else {
-			SDL_SetRenderDrawColor(renderer, 0xCC, 0xCC, 0xCC, SDL_ALPHA_OPAQUE);
-		}
-		SDL_RenderFillRect(renderer, &rect);
-		SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, SDL_ALPHA_OPAQUE);
-		SDL_RenderDrawRect(renderer, &rect);
+		renderRotorCenter(gd, i);
 	}
+}
 
-    SDL_RenderPresent(renderer);
+void renderEverything(GameData *gd) {
+	clearScreen(gd);
+	renderLines(gd);
+	renderRotors(gd);
+	renderBalls(gd);
+	renderRotorCenters(gd);
+    SDL_RenderPresent(gd->renderer);
 }
