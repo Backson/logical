@@ -311,7 +311,6 @@ void progressBall(GameData *gd, int ball_index, Time t) {
 }
 
 void progressLogic(GameData *gd, Time t) {
-	float dt = t / (float)seconds(1);
 	for (int i = 0; i < NBALLS; ++i) {
 		progressBall(gd, i, t);
 	}
