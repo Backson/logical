@@ -4,13 +4,6 @@
 
 bool should_quit = false;
 
-void handleAllEvents(GameData *gd) {
-    SDL_Event e;
-    while (!should_quit && SDL_PollEvent(&e)) {
-		handleEvent(gd, &e);
-    }
-}
-
 void handleEvent(GameData *gd, const SDL_Event *e) {
     if (e->type == SDL_QUIT) {
         should_quit = true;
@@ -68,6 +61,13 @@ void handleEvent(GameData *gd, const SDL_Event *e) {
 			}
 		}
 	}
+}
+
+void handleAllEvents(GameData *gd) {
+    SDL_Event e;
+    while (!should_quit && SDL_PollEvent(&e)) {
+		handleEvent(gd, &e);
+    }
 }
 
 int main(int argc, char *argv[]) {

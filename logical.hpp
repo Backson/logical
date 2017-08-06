@@ -149,14 +149,12 @@ void turnRotor(GameData *, int, int);
 void releaseBallFromRotor(GameData *, int, int);
 
 void resetGame(GameData *);
-void handleAllEvents(GameData *);
-void handleEvent(GameData *, const SDL_Event *);
 void progressLogic(GameData *, Time);
 void updateBallPosition(GameData *, int);
-void renderEverything(GameData *);
 
 int startGraphics(GameData *);
 void stopGraphics(GameData *);
+void renderEverything(GameData *);
 
 void clearGame(GameData *);
 
