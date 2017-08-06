@@ -1,5 +1,14 @@
 #include "logical.hpp"
 
+#include <cmath>
+
+const int ROTOR_POSITIONS[] = {
+	ROTOR_POSITION_RIGHT,
+	ROTOR_POSITION_TOP,
+	ROTOR_POSITION_LEFT,
+	ROTOR_POSITION_BOTTOM,
+};
+
 void clearGame(GameData *gd) {
 	for (int i = 0; i < NBALLS; ++i) {
 		gd->balls[i].type = BALL_TYPE_NONE;
@@ -196,4 +205,190 @@ void copyConnector(const Connector *src, Connector *dst) {
 	if (src->type == CONNECTOR_ROTOR) {
 		dst->rotor.position = src->rotor.position;
 	}
+}
+
+void turnRotor(GameData *gd, int rotor_index, int direction) {
+	int *balls = gd->rotors[rotor_index].balls;
+	// update rotor
+	if (direction == ROTOR_CLOCKWISE) {
+		int temp = balls[ROTOR_POSITION_RIGHT];
+		balls[ROTOR_POSITION_RIGHT] = balls[ROTOR_POSITION_TOP];
+		balls[ROTOR_POSITION_TOP] = balls[ROTOR_POSITION_LEFT];
+		balls[ROTOR_POSITION_LEFT] = balls[ROTOR_POSITION_BOTTOM];
+		balls[ROTOR_POSITION_BOTTOM] = temp;
+		SDL_Log("Rotor %d was turned clockwise", rotor_index);
+	} else if (direction == ROTOR_ANTICLOCKWISE) {
+		int temp = balls[ROTOR_POSITION_RIGHT];
+		balls[ROTOR_POSITION_RIGHT] = balls[ROTOR_POSITION_BOTTOM];
+		balls[ROTOR_POSITION_BOTTOM] = balls[ROTOR_POSITION_LEFT];
+		balls[ROTOR_POSITION_LEFT] = balls[ROTOR_POSITION_TOP];
+		balls[ROTOR_POSITION_TOP] = temp;
+		SDL_Log("Rotor %d was turned anticlockwise", rotor_index);
+	} else {
+		SDL_LogWarn(0, "Rotor %d illegal turn direction (%d)", rotor_index, direction);
+		return;
+	}
+
+	// update balls
+	for (int dir = 0; dir < 4; ++dir) {
+		int ball_index = balls[ROTOR_POSITIONS[dir]];
+		if (ball_index >= 0) {
+			gd->balls[ball_index].connector.rotor.position = ROTOR_POSITIONS[dir];
+			updateBallPosition(gd, ball_index);
+		}
+	}
+}
+
+void releaseBallFromRotor(GameData *gd, int rotor_index, int position) {
+	int ball_index = gd->rotors[rotor_index].balls[position];
+	if (ball_index >= 0 && gd->rotors[rotor_index].connectors[position].type != CONNECTOR_WALL) {
+		changeBallConnector(gd, ball_index, &gd->rotors[rotor_index].connectors[position]);
+		gd->balls[ball_index].released_counter++;
+		gd->rotors[rotor_index].balls[position] = -1;
+		SDL_Log("Released ball %d from rotor %d(%d)", ball_index, rotor_index, position);
+	}
+}
+
+void updateBallPosition(GameData *gd, int ball_index) {
+	if (gd->balls[ball_index].connector.type == CONNECTOR_ROTOR) {
+		int rotor_index = gd->balls[ball_index].connector.target;
+		int position = gd->balls[ball_index].connector.rotor.position;
+
+		float dx = 0;
+		float dy = 0;
+		if (position == ROTOR_POSITION_RIGHT) {
+			dx = +15.0;
+		} else if (position == ROTOR_POSITION_TOP) {
+			dy = -15.0;
+		} else if (position == ROTOR_POSITION_LEFT) {
+			dx = -15.0;
+		} else if (position == ROTOR_POSITION_BOTTOM) {
+			dy = +15.0;
+		}
+
+		gd->balls[ball_index].x = gd->rotors[rotor_index].x + dx;
+		gd->balls[ball_index].y = gd->rotors[rotor_index].y + dy;
+	}
+}
+
+void progressBall(GameData *gd, int ball_index, Time t) {
+	while (gd->balls[ball_index].type != BALL_TYPE_NONE) {
+		// spawns are where new balls are created
+		if (gd->balls[ball_index].connector.type == CONNECTOR_SPAWN) {
+			// remember the index of the spawn of this ball for later
+			int spawn_index = gd->balls[ball_index].connector.target;
+			gd->balls[ball_index].spawn_index = spawn_index;
+			// put the ball onto the first line (or something else)
+			changeBallConnector(gd, ball_index, &gd->spawns[spawn_index].connector);
+			continue;
+		}
+
+		// inserters are like an if-else branch: You go one way or another
+		if (gd->balls[ball_index].connector.type == CONNECTOR_INSERTER) {
+			// find whatever we are trying to insert into
+			int inserter_index = gd->balls[ball_index].connector.target;
+			const Connector *connector_success = &gd->inserters[inserter_index].connector_success;
+			if (connector_success->type == CONNECTOR_ROTOR) {
+				// check if the rotor is free
+				int rotor_index = connector_success->target;
+				int rotor_position = connector_success->rotor.position;
+				bool is_free = gd->rotors[rotor_index].balls[rotor_position] == -1;
+				if (is_free) {
+					// put the ball into the rotor
+					changeBallConnector(gd, ball_index, connector_success);
+				} else {
+					// put the ball on something else instead
+					const Connector *connector_failure = &gd->inserters[inserter_index].connector_failure;
+					changeBallConnector(gd, ball_index, connector_failure);
+				}
+			} else {
+				// if we are trying to insert into something else then a rotor, it always succeeds
+				changeBallConnector(gd, ball_index, connector_success);
+			}
+			// we may have inserted into another inserter, so keep going
+			continue;
+		}
+
+		// lines go from one place to another
+		if (gd->balls[ball_index].connector.type == CONNECTOR_LINE) {
+			int line_index = gd->balls[ball_index].connector.target;
+			// line vector
+			float line_x = gd->lines[line_index].x2 - gd->lines[line_index].x1;
+			float line_y = gd->lines[line_index].y2 - gd->lines[line_index].y1;
+			// length of line vector
+			float line_norm = sqrt(line_x * line_x + line_y * line_y);
+			// line vector direction
+			float dir_x = line_x / line_norm;
+			float dir_y = line_y / line_norm;
+			// ball position relative to line start
+			float ball_x = gd->balls[ball_index].x - gd->lines[line_index].x1;
+			float ball_y = gd->balls[ball_index].y - gd->lines[line_index].y1;
+			// projection value of ball position onto line
+			float proj = ball_x * dir_x + ball_y * dir_y;
+			// move ball along line
+			float dt = t / (float)seconds(1);
+			float velocity = 160.0; // pixels per second
+			float new_proj = proj + velocity * dt;
+			// check whether the ball reached the end of the line
+			if (new_proj > line_norm) {
+				const Connector *connector_success = &gd->lines[line_index].connector;
+				if (connector_success->type == CONNECTOR_ROTOR) {
+					int rotor_index = connector_success->target;
+					int rotor_position = connector_success->rotor.position;
+					bool is_free = gd->rotors[rotor_index].balls[rotor_position] == -1;
+					if (is_free) {
+						changeBallConnector(gd, ball_index, connector_success);
+					} else {
+						const Connector *connector_failure = &gd->rotors[rotor_index].connectors[rotor_position];
+						changeBallConnector(gd, ball_index, connector_failure);
+					}
+				} else {
+					changeBallConnector(gd, ball_index, connector_success);
+				}
+			} else {
+				float new_x = gd->lines[line_index].x1 + dir_x * new_proj;
+				float new_y = gd->lines[line_index].y1 + dir_y * new_proj;
+				gd->balls[ball_index].x = new_x;
+				gd->balls[ball_index].y = new_y;
+			}
+			break;
+		}
+
+		if (gd->balls[ball_index].connector.type == CONNECTOR_FREE) {
+			gd->balls[ball_index].x += gd->balls[ball_index].vx;
+			gd->balls[ball_index].y += gd->balls[ball_index].vy;
+
+			if (gd->time - gd->balls[ball_index].created > seconds(20)) {
+				SDL_Log("Ball %i decayed", ball_index);
+				removeBall(gd, ball_index);
+			}
+			break;
+		}
+
+		// balls in rotors do nothing
+		if (gd->balls[ball_index].connector.type == CONNECTOR_ROTOR) {
+			break;
+		}
+	}
+}
+
+void progressLogic(GameData *gd, Time t) {
+	for (int i = 0; i < NBALLS; ++i) {
+		progressBall(gd, i, t);
+	}
+
+	gd->time += t;
+}
+
+void resetGame(GameData *gd) {
+	clearGame(gd);
+	random_seed(&gd->random, 42);
+	buildMap4(gd);
+
+	addBallType(gd, BALL_TYPE_BLUE);
+	addBallType(gd, BALL_TYPE_GREEN);
+	addBallType(gd, BALL_TYPE_YELLOW);
+	addBallType(gd, BALL_TYPE_MAGENTA);
+
+	placeRandomBallInSpawn(gd, 0);
 }

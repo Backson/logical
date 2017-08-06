@@ -128,6 +128,7 @@ struct GameData {
 
 	Random random;
 
+	SDL_Window *win;
 	SDL_Renderer *renderer;
 };
 
@@ -152,7 +153,10 @@ void handleAllEvents(GameData *);
 void handleEvent(GameData *, const SDL_Event *);
 void progressLogic(GameData *, Time);
 void updateBallPosition(GameData *, int);
-void renderEverything(GameData *, SDL_Renderer *);
+void renderEverything(GameData *);
+
+int startGraphics(GameData *);
+void stopGraphics(GameData *);
 
 void clearGame(GameData *);
 
